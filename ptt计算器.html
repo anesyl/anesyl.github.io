@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ptt计算器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        label {
+            margin-right: 10px;
+        }
+        .input-container {
+            margin-bottom: 15px;
+        }
+        .output-container {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9e9e9;
+            border: 1px solid #ccc;
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 5px;
+            font-size: 14px;
+        }
+        h2 {
+            margin-top: 30px;
+        }
+        button {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>ptt计算器</h1>
+
+    <h2>PTT和爬梯步数</h2>
+    <div class="input-container">
+        <label for="trackConstant">曲目定数：</label>
+        <input type="number" id="trackConstant" step="any" min="0">
+    </div>
+
+    <div class="input-container">
+        <label for="finalScore">最终得分：</label>
+        <input type="number" id="finalScore" min="0">
+    </div>
+
+    <div class="input-container">
+        <label for="step">角色step：</label>
+        <input type="number" id="step" min="0">
+    </div>
+
+    <div class="input-container">
+        <label for="bonus">加成百分比：</label>
+        <input type="number" id="bonus" step="any" min="0" value="0">
+    </div>
+
+    <div class="output-container">
+        <p>单曲PTT：<span id="ptt">0</span></p>
+        <p>爬梯步数：<span id="climbSteps">0</span></p>
+        <p>步数上限：<span id="maxClimbSteps">0</span></p>
+    </div>
+	<hr>
+
+ 
+
+    <h2>根据目标爬梯步数计算</h2>
+    <div class="input-container">
+        <label for="inputClimbSteps">输入目标爬梯步数：</label>
+        <input type="number" id="inputClimbSteps" step="any" min="0">
+    </div>
+
+    <div class="output-container">
+        <p>目标单曲PTT：<span id="targetPttFromSteps">0</span></p>
+        <p>目标得分：<span id="targetScoreFromSteps">0</span></p>
+        <p id="maxClimbStepsMessage"></p>
+    </div>
+	<hr>
+	
+	
+	<h2>目标得分和爬梯步数</h2>
+    <div class="input-container">
+        <label for="inputPtt">输入单曲PTT：</label>
+        <input type="number" id="inputPtt" step="any" min="0">
+    </div>
+
+    <div class="output-container">
+        <p>目标得分：<span id="targetScore">0</span></p>
+        <p>此时的爬梯步数：<span id="reverseClimbSteps">0</span></p>
+    </div>
+	<hr>
+
+    <script>
+        const MAX_SCORE = 10002221;  // 当前分数的上限，未来可能修改
+
+        // 计算单曲PTT的函数
+        function calculatePtt(trackConstant, finalScore) {
+            if (finalScore >= 10000000) {
+                return trackConstant + 2;
+            } else if (finalScore >= 9800000) {
+                return trackConstant + 1 + (finalScore - 9800000) / 200000;
+            } else {
+                return Math.max(0, trackConstant + (finalScore - 9500000) / 300000);
+            }
+        }
+
+        // 计算爬梯步数的函数
+        function calculateClimbSteps(ptt, step, bonus) {
+            if (ptt > 0) {
+                return (step * (2.5 + 2.45 * Math.sqrt(ptt)) * (1 + bonus / 100)) / 50;
+            }
+            return 0;
+        }
+
+        // 通过单曲PTT倒推目标得分的函数
+        function calculateTargetScoreFromPtt(trackConstant, inputPtt) {
+            let targetScore = 0;
+            if (inputPtt >= trackConstant + 2) {
+                targetScore = 10000000;
+            } else if (inputPtt >= trackConstant + 1) {
+                targetScore = 9800000 + (inputPtt - trackConstant - 1) * 200000;
+            } else {
+                targetScore = 9500000 + (inputPtt - trackConstant) * 300000;
+            }
+            return targetScore;
+        }
+
+        // 计算目标单曲PTT的函数，反推公式
+        function calculatePttFromClimbSteps(trackConstant, inputClimbSteps, step, bonus) {
+            const numerator = (inputClimbSteps * 50) / (step * (1 + bonus / 100)) - 2.5;
+            return Math.pow(numerator / 2.45, 2);
+        }
+
+        // 更新页面输出的函数，去除小数末尾的0，保留1到5位小数
+        function formatOutput(value) {
+            return value.toFixed(5).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+        }
+
+        // 去掉小数点后第二位及其后的部分
+        function formatClimbSteps(climbSteps) {
+            const climbStepsStr = climbSteps.toString();
+            const decimalIndex = climbStepsStr.indexOf(".");
+            if (decimalIndex !== -1) {
+                return climbStepsStr.slice(0, decimalIndex + 2); // 只保留小数点后第一位
+            }
+            return climbStepsStr; // 如果没有小数点，则直接返回
+        }
+
+        // 计算并更新页面
+        function calculate() {
+            const trackConstant = parseFloat(document.getElementById('trackConstant').value) || 0;
+            const finalScore = parseInt(document.getElementById('finalScore').value) || 0;
+            const step = parseInt(document.getElementById('step').value) || 0;
+            const bonus = parseFloat(document.getElementById('bonus').value) || 0;
+
+            // 计算单曲PTT
+            const ptt = calculatePtt(trackConstant, finalScore);
+
+            // 计算爬梯步数
+            const climbSteps = calculateClimbSteps(ptt, step, bonus);
+
+            // 计算理论上的最高步数
+            const maxClimbSteps = calculateClimbSteps(calculatePtt(trackConstant, MAX_SCORE), step, bonus);
+
+            // 更新页面输出
+            document.getElementById('ptt').textContent = formatOutput(ptt);
+            document.getElementById('climbSteps').textContent = formatClimbSteps(climbSteps);
+            document.getElementById('maxClimbSteps').textContent = formatClimbSteps(maxClimbSteps);
+        }
+
+        // 反推并更新页面
+        function reverseCalculate() {
+            const trackConstant = parseFloat(document.getElementById('trackConstant').value) || 0;
+            const inputPtt = parseFloat(document.getElementById('inputPtt').value) || 0;
+            const step = parseInt(document.getElementById('step').value) || 0;
+            const bonus = parseFloat(document.getElementById('bonus').value) || 0;
+
+            // 计算目标得分
+            const targetScore = calculateTargetScoreFromPtt(trackConstant, inputPtt);
+
+            // 计算爬梯步数
+            const reverseClimbSteps = calculateClimbSteps(inputPtt, step, bonus);
+
+            // 更新页面输出
+            document.getElementById('targetScore').textContent = Math.max(0, Math.floor(targetScore));
+            document.getElementById('reverseClimbSteps').textContent = formatClimbSteps(reverseClimbSteps);
+        }
+
+        // 根据目标爬梯步数计算
+        function calculateFromSteps() {
+            const trackConstant = parseFloat(document.getElementById('trackConstant').value) || 0;
+            const inputClimbSteps = parseFloat(document.getElementById('inputClimbSteps').value) || 0;
+            const step = parseInt(document.getElementById('step').value) || 0;
+            const bonus = parseFloat(document.getElementById('bonus').value) || 0;
+
+            let targetScore = 10000000; // 初始值
+            let calculatedClimbSteps = calculateClimbSteps(calculatePtt(trackConstant, targetScore), step, bonus);
+            
+            // 计算理论上的最高步数
+            const maxClimbSteps = calculateClimbSteps(calculatePtt(trackConstant, MAX_SCORE), step, bonus);
+            //document.getElementById('maxClimbStepsMessage').textContent = `理论上的最高步数为：${formatClimbSteps(maxClimbSteps)}`;
+
+            // 检查目标步数是否合理
+            if (inputClimbSteps > maxClimbSteps) {
+                document.getElementById('targetPttFromSteps').textContent = "步数超过上限";
+                document.getElementById('targetScoreFromSteps').textContent = MAX_SCORE;
+                return;
+            }
+
+            // 调整目标得分，直到爬梯步数与目标一致
+            while (calculatedClimbSteps > inputClimbSteps) {
+                targetScore -= 1;
+                calculatedClimbSteps = calculateClimbSteps(calculatePtt(trackConstant, targetScore), step, bonus);
+            }
+            
+            // 增加目标得分，直到爬梯步数与目标一致
+            while (calculatedClimbSteps < inputClimbSteps) {
+                targetScore += 1;
+                calculatedClimbSteps = calculateClimbSteps(calculatePtt(trackConstant, targetScore), step, bonus);
+            }
+
+            // 计算目标单曲PTT
+            const targetPttFromSteps = calculatePtt(trackConstant, targetScore);
+
+            // 更新页面输出
+            document.getElementById('targetScoreFromSteps').textContent = targetScore;
+            document.getElementById('targetPttFromSteps').textContent = formatOutput(targetPttFromSteps);
+        }
+
+        // 监听输入变化，实时更新
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', debounceCalculate);
+        });
+
+        // 定时器防止过多重复计算
+        let timeoutId;
+        function debounceCalculate() {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+            timeoutId = setTimeout(function() {
+                calculate();
+                reverseCalculate();
+                calculateFromSteps();
+            }, 50);
+        }
+
+    </script>
+</body>
+</html>
