@@ -71,7 +71,7 @@
 	<div class="output-container">
 		<p>单曲PTT：<span id="ptt">0</span></p>
 		<p>爬梯步数：<span id="climbSteps">0</span></p>
-		<p>步数上限：<span id="maxClimbSteps">0</span></p>
+		<p>步数范围：<span id="rangeClimbSteps">0</span></p>
 	</div>
 	<hr>
 
@@ -206,13 +206,15 @@
 			// 计算爬梯步数
 			const climbSteps = calculateClimbSteps(ptt, step, bonus);
 
-			// 计算理论上的最高步数
+			// 计算理论上的最高、最低步数
 			const maxClimbSteps = calculateClimbSteps(calculatePtt(trackConstant, MAX_SCORE), step, bonus);
+			const minClimbSteps = calculateClimbSteps(0, step, bonus)
 
 			// 更新页面输出
 			document.getElementById('ptt').textContent = formatOutput(ptt);
 			document.getElementById('climbSteps').textContent = formatClimbSteps(climbSteps);
-			document.getElementById('maxClimbSteps').textContent = formatClimbSteps(maxClimbSteps);
+			document.getElementById('rangeClimbSteps').textContent = `${formatClimbSteps(minClimbSteps)} ~ ${formatClimbSteps(maxClimbSteps)}`;
+
 
 
 
@@ -258,8 +260,17 @@
 				} 
 				else 
 				{   
-					document.getElementById('targetScore').textContent = formatOutput(calculateTargetScoreFromPtt(trackConstant, inputPtt));
-					document.getElementById('reverseClimbSteps').textContent = formatClimbSteps(calculateClimbSteps(inputPtt, step, bonus));
+					if (inputPtt == 0)
+					{
+						document.getElementById('targetScore').textContent = 0;
+						document.getElementById('reverseClimbSteps').textContent = formatClimbSteps(minClimbSteps);
+					}
+					else
+					{
+						document.getElementById('targetScore').textContent = formatOutput(calculateTargetScoreFromPtt(trackConstant, inputPtt));
+						document.getElementById('reverseClimbSteps').textContent = formatClimbSteps(calculateClimbSteps(inputPtt, step, bonus));
+					}
+					
 				}
 			}
 
