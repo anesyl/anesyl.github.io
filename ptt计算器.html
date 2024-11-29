@@ -136,18 +136,18 @@
             return Math.ceil(targetScore);
         }
 
-        // 计算目标单曲PTT的函数，反推公式
+        // 从爬梯步数反推目标单曲PTT的函数
         function calculatePttFromClimbSteps(trackConstant, inputClimbSteps, step, bonus) {
             const numerator = (inputClimbSteps * 50) / (step * (1 + bonus / 100)) - 2.5;
             return Math.pow(numerator / 2.45, 2);
         }
 
-        // 更新页面输出的函数，去除小数末尾的0，保留1到5位小数
+        // 更新页面输出的函数，去除小数末尾的0，保留1到5位小数，用于ptt显示
         function formatOutput(value) {
             return value.toFixed(5).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
         }
 
-        // 去掉小数点后第二位及其后的部分
+        // 去掉小数点后第二位及其后的部分，用于爬梯舍入
         function formatClimbSteps(climbSteps) {
             const climbStepsStr = climbSteps.toString();
             const decimalIndex = climbStepsStr.indexOf(".");
