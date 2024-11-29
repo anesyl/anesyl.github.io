@@ -50,17 +50,17 @@
     <h2>PTT和爬梯步数</h2>
     <div class="input-container">
         <label for="trackConstant">曲目定数：</label>
-        <input type="number" id="trackConstant" step="any" min="0">
+        <input type="number" id="trackConstant" step="any" min="0" oninput="checkPositiveValue(this)">
     </div>
 
     <div class="input-container">
         <label for="finalScore">最终得分：</label>
-        <input type="number" id="finalScore" min="0">
+        <input type="number" id="finalScore" min="0" oninput="checkPositiveValue(this)">
     </div>
 
     <div class="input-container">
         <label for="step">角色step：</label>
-        <input type="number" id="step" min="0">
+        <input type="number" id="step" min="0" oninput="checkPositiveValue(this)">
     </div>
 
     <div class="input-container">
@@ -192,33 +192,46 @@
             document.getElementById('climbSteps').textContent = formatClimbSteps(climbSteps);
             document.getElementById('maxClimbSteps').textContent = formatClimbSteps(maxClimbSteps);
 
-			// 计算目标单曲PTT和目标得分
+
+
+
+			// 根据目标爬梯步数计算，目标单曲PTT和目标得分
 			const inputClimbSteps = parseFloat(document.getElementById('inputClimbSteps').value) || 0;
 			if (inputClimbSteps > 0) {
 				const targetPttFromSteps = calculatePttFromClimbSteps(trackConstant, inputClimbSteps, step, bonus);
 				const targetScoreFromSteps = calculateTargetScoreFromPtt(trackConstant, targetPttFromSteps);
 
 				// 检查是否超过最大PTT
-				if (targetPttFromSteps > MAX_PTT) {
+				if (targetPttFromSteps > trackConstant+2) {
 					document.getElementById('targetScoreFromSteps').textContent = MAX_SCORE;
 					document.getElementById('targetPttFromSteps').textContent = `步数超过上限`;
-				} else {
-					document.getElementById('maxClimbStepsMessage').textContent = "";
-					document.getElementById('targetScoreFromSteps').textContent = formatOutput(targetScoreFromSteps);
-					document.getElementById('targetPttFromSteps').textContent = formatOutput(targetPttFromSteps);
-				}
+				} else 
+                    {
+                        if (inputClimbSteps<calculateClimbSteps(0, step, bonus))
+                        {
+                            document.getElementById('targetScoreFromSteps').textContent = 0;
+                            document.getElementById('targetPttFromSteps').textContent = `步数低于下限`;
+                        }
+                        else
+                        {
+                            document.getElementById('targetScoreFromSteps').textContent = formatOutput(targetScoreFromSteps);
+                            document.getElementById('targetPttFromSteps').textContent = formatOutput(targetPttFromSteps);   
+                        }
+                    }
 			}
-
+			
+			
+			//根据目标单曲PTT，计算目标得分和此时的爬梯步数
 			const inputPtt = parseFloat(document.getElementById('inputPtt').value) || 0;
-			if (inputPtt > 0) {
+			if (inputPtt >= 0 && trackConstant>0) {
 				// 检查是否超过最大PTT
 				if (inputPtt > trackConstant+2) {
 					document.getElementById('targetScore').textContent = MAX_SCORE;
 					document.getElementById('reverseClimbSteps').textContent = "PTT超过上限";
-				} else {
-					const targetScore = calculateTargetScoreFromPtt(trackConstant, inputPtt);
-					document.getElementById('targetScore').textContent = formatOutput(targetScore);
-					document.getElementById('reverseClimbSteps').textContent = formatClimbSteps(calculateClimbSteps(inputPtt, step, bonus));
+				} else 
+                {   
+                    document.getElementById('targetScore').textContent = formatOutput(calculateTargetScoreFromPtt(trackConstant, inputPtt));
+                    document.getElementById('reverseClimbSteps').textContent = formatClimbSteps(calculateClimbSteps(inputPtt, step, bonus));
 				}
 			}
 
